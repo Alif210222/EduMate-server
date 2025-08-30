@@ -31,10 +31,12 @@ async function run() {
     
     const db = client.db("edu_mate");
     const costCollection = db.collection("cost")
+    const noteCollection = db.collection("notes")
 
-
+// cost related  rest api
 app.get("/cost",async(req,res)=>{
-    const result = await costCollection.find().toArray()
+    const  email = req.query.email
+    const result = await costCollection.find({email}).toArray()
     res.send(result)
 })    
 
@@ -44,7 +46,25 @@ app.get("/cost",async(req,res)=>{
         res.send(result);
  })
 
+ // note related api 
+app.get("/note", async (req, res) => {
+  const { email, subject } = req.query;
+  let filter = { email };
 
+  if (subject && subject.length>=2) {
+    filter.subject = { $regex: subject, $options: "i" }; // case-insensitive search
+  }
+
+  const notes = await noteCollection.find(filter).toArray();
+  res.send(notes);
+});
+
+
+ app.post("/note",async(req,res) =>{
+     const newNote = req.body;
+     const result = await noteCollection.insertOne(newNote)
+     res.send(result)
+ })
 
 
 
