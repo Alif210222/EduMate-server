@@ -32,8 +32,29 @@ async function run() {
     const db = client.db("edu_mate");
     const costCollection = db.collection("cost")
     const noteCollection = db.collection("notes")
+    const incomeCollection = db.collection("incomes")
+    const studyPlanCollection = db.collection("studyPlan")
 
-// cost related  rest api
+
+//  ------------------------------------------------------- ----income data  in database
+
+// get 
+app.get("/income",async(req,res)=>{
+    const  email = req.query.email
+    const result = await incomeCollection.find({email}).toArray()
+    res.send(result)
+})
+
+
+// add income
+app.post("/income" , async(req,res)=>{
+        const newIncome = req.body;
+        const result = await incomeCollection.insertOne(newIncome)
+        res.send(result);
+ })
+
+
+//  -------------------------------------------------------------- cost related  rest api
 app.get("/cost",async(req,res)=>{
     const  email = req.query.email
     const result = await costCollection.find({email}).toArray()
@@ -41,12 +62,39 @@ app.get("/cost",async(req,res)=>{
 })    
 
  app.post("/cost" , async(req,res)=>{
-        const newCost = req.body;
-        const result = await costCollection.insertOne(newCost)
-        res.send(result);
+         
+  try {
+    const { title, amount, email, date } = req.body;
+
+    // --- Validation checks ---
+    if (!title || !amount || !email) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    if (typeof amount !== "number" || isNaN(amount)) {
+      return res.status(400).json({ error: "Amount must be a number" });
+    }
+
+    if (amount < 0) {
+      return res.status(400).json({ error: "Amount cannot be negative" });
+    }
+
+    // Optional: realistic limit (e.g., max 1 lakh tk)
+    if (amount > 1000000) {
+      return res.status(400).json({ error: "Amount too high!" });
+    }
+
+    // --- If valid then insert ---
+    const newCost = { title, amount, email, date };
+    const result = await costCollection.insertOne(newCost);
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Error saving cost:", error);
+    res.status(500).json({ error: "Server error" });
+  }
  })
 
- // note related api 
+ // --------------------------------------------------------------------note related api 
 app.get("/note", async (req, res) => {
   const { email, subject } = req.query;
   let filter = { email };
@@ -66,6 +114,21 @@ app.get("/note", async (req, res) => {
      res.send(result)
  })
 
+ // --------------------------------------------------------------------  study plan reated data 
+
+// GET study plan by user
+app.get("/studyplan", async (req, res) => {
+  const email = req.query.email;
+  const result = await studyPlanCollection.find({ email }).toArray();
+  res.send(result);
+});
+
+ // POST study plan
+app.post("/studyplan", async (req, res) => {
+  const newPlan = req.body;
+  const result = await studyPlanCollection.insertOne(newPlan);
+  res.send(result);
+});
 
 
     // Send a ping to confirm a successful connection
