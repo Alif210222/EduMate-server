@@ -4,7 +4,7 @@ const cors = require("cors")
 
 const app = express()
 const port = process.env.PORT || 3000
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 //middle ware
 app.use(cors())
@@ -34,6 +34,7 @@ async function run() {
     const noteCollection = db.collection("notes")
     const incomeCollection = db.collection("incomes")
     const studyPlanCollection = db.collection("studyPlan")
+    const scheduleCollection = db.collection("schedule")
 
 
 //  ------------------------------------------------------- ----income data  in database
@@ -129,6 +130,70 @@ app.post("/studyplan", async (req, res) => {
   const result = await studyPlanCollection.insertOne(newPlan);
   res.send(result);
 });
+
+// delete studdy plan
+app.delete("/deleteTask/:id", async(req,res) =>{
+         const id  = req.params.id;
+         const result = await studyPlanCollection.deleteOne({_id: new ObjectId(id) }) 
+         res.send(result)
+})
+
+// ---------------------------------------------------------------schedule planer related api 
+
+// GET all classes for a user
+app.get("/schedules", async (req, res) => {
+  const email = req.query.email;
+  if (!email) return res.status(400).send({ error: "Email required" });
+  const classes = await scheduleCollection.find({ email }).toArray();
+  res.send(classes);
+});
+
+
+   // POST add a new class/task
+app.post("/schedules", async (req, res) => {
+  let newClass = req.body;
+
+  // ensure date is always YYYY-MM-DD
+  if (newClass.date) {
+    const d = new Date(newClass.date);
+    newClass.date = d.toISOString().split("T")[0];
+  }
+
+  if (!newClass.subject || !newClass.date || !newClass.time || !newClass.email) {
+    return res.status(400).send({ error: "All fields are required" });
+  }
+
+  const result = await scheduleCollection.insertOne(newClass);
+  res.send({ insertedId: result.insertedId });
+});
+
+// get single data 
+app.get("/singleTask/:id",async(req,res) =>{
+       const id= req.params.id;
+       const result = await scheduleCollection.findOne({_id: new ObjectId(id)})
+       res.send(result)
+})
+
+
+// PUT update a class
+app.put("/schedules/:id", async (req, res) => {
+  const id = req.params.id;
+  const { _id, ...updatedTask } = req.body;
+  const result = await scheduleCollection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: updatedTask }
+  );
+  res.send(result);
+});
+
+
+// DELETE a class
+app.delete("/schedules/:id", async (req, res) => {
+  const id = req.params.id;
+  const result = await scheduleCollection.deleteOne({ _id: new ObjectId(id) });
+  res.send(result);
+});
+
 
 
     // Send a ping to confirm a successful connection
