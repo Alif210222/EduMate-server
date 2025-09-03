@@ -115,6 +115,14 @@ app.get("/note", async (req, res) => {
      res.send(result)
  })
 
+ //delete note api create
+
+   app.delete("/deleteNote/:id",async(req,res) =>{
+       const id=req.params.id;
+       const result = await noteCollection.deleteOne({_id: new ObjectId(id)})
+       res.send(result)
+   })
+
  // --------------------------------------------------------------------  study plan reated data 
 
 // GET study plan by user
